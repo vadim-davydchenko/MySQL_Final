@@ -86,7 +86,7 @@ echo deb https://repo.proxysql.com/ProxySQL/proxysql-2.2.x/$(lsb_release -sc)/ .
 apt-get update
 apt-get install proxysql
 ```
-Change config в /etc/proxysql.cnf
+Change config в [/etc/proxysql.cnf](https://github.com/vadim-davydchenko/MySQL_Final/blob/master/proxysql.cnf)
 
 **п.3 Set up telegraf on the mysql master and slave with export of metrics in prometheus format and connect it to the prometheus server on the 2nd node**
 
@@ -98,5 +98,24 @@ echo '393e8779c89ac8d958f81f942f9ad7fb82a25e133faddaf92e15b16e6ac9ce4c influxdat
 echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main' | sudo tee /etc/apt/sources.list.d/influxdata.list
 sudo apt-get update && sudo apt-get install telegraf
 ```
+*Creating an exporter user on both mysql (enough for master, replicated on slave)*
 
+```
+CREATE USER 'exporter'@'127.0.0.1' IDENTIFIED BY 'password' WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'127.0.0.1';
+```
+We set up [telegraf.conf](https://github.com/vadim-davydchenko/MySQL_Final/blob/master/telegraf.conf) , on slave mysql the config is the same, just change the line
+
+`"exporter:password@tcp(<public_slave_mysql>:3306)/?tls=false"`
+
+Setting up prometheus along the path /opt/prometheus/prometheus.yml
+
+```
+  - job_name: 'telegraf'
+    static_configs:
+    - targets: ['51.250.18.64:9144']
+  - job_name: 'mysql'
+    static_configs:
+    - targets: ['<master_sql>:9273', '<slave_sql>:9273']
+```
 
