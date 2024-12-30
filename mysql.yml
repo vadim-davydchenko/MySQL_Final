@@ -1,0 +1,5 @@
+- name: Install Mysql and configure replication
+  hosts: all
+  become: true
+  roles:
+    - mysql

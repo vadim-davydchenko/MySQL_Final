@@ -1,0 +1,27 @@
+- name: Download ProxySQL
+  ansible.builtin.get_url:
+    url: https://repo.proxysql.com/ProxySQL/repo_pub_key
+    dest: /tmp/repo_pub_key
+    mode: '0644'
+
+- name: Add apt key
+  ansible.builtin.apt_key:
+    url: https://repo.proxysql.com/ProxySQL/repo_pub_key
+    state: present
+
+- name: Add in source list
+  ansible.buitlin.command:
+    cmd: echo deb https://repo.proxysql.com/ProxySQL/proxysql-2.2.x/$(lsb_release -sc)/ ./ | tee /etc/apt/sources.list.d/proxysql.list
+  changed_when: false
+
+- name: Install ProxySQL
+  ansible.builtin.apt:
+    name: proxysql
+    state: present
+    update_cache: true
+
+- name: Configure ProxySQL
+  ansible.builtin.template:
+    src: proxysql.cnf.j2
+    dest: "{{ proxysql_config }}"
+    mode: '0644'

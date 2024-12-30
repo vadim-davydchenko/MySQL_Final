@@ -1,0 +1,57 @@
+- name: Download key for telegraf
+  ansible.builtin.get_url:
+    url: https://repos.influxdata.com/influxdata-archive_compat.key
+    dest: /tmp/influxdata-archive_compat.key
+    mode: '0644'
+
+- name: Add key for telegraf
+  ansible.builtin.command:
+    cmd: echo '393e8779c89ac8d958f81f942f9ad7fb82a25e133faddaf92e15b16e6ac9ce4c influxdata-archive_compat.key'
+  changed_when: false
+
+- name: Continue setup telegraf
+  ansible.builtin.command:
+    cmd: sha256sum -c && cat influxdata-archive_compat.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg > /dev/null
+  changed_when: false
+
+- name: Add telegraf repository
+  ansible.builtin.command:
+    cmd: >
+      echo 'deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.gpg]
+      https://repos.influxdata.com/debian stable main' |
+      tee /etc/apt/sources.list.d/influxdata.list
+  changed_when: false
+
+- name: Install telegraf
+  ansible.builtin.apt:
+    name: telegraf
+    state: present
+    update_cache: true
+
+- name: Configure telegraf
+  ansible.builtin.template:
+    src: telegraf.conf.j2
+    dest: "{{ telegraf_config }}"
+    mode: '0644'
+
+- name: Restart telegraf
+  ansible.builtin.service:
+    name: telegraf
+    state: restarted
+
+- name: Configure Prometheus to monitor Telegraf and MySQL
+  ansible.builtin.blockinfile:
+    path: /opt/prometheus/prometheus.yml
+    marker: "# {mark} ANSIBLE MANAGED BLOCK FOR MYSQL AND TELEGRAF"
+    block: |
+      - job_name: 'telegraf'
+        static_configs:
+        - targets: ['51.250.18.64:9144']
+      - job_name: 'mysql'
+        static_configs:
+        - targets: ['{{ master_ip }}:9273', '{{ slave_ip }}:9273']
+
+- name: Restart Prometheus
+  ansible.builtin.service:
+    name: prometheus
+    state: restarted

@@ -1,0 +1,16 @@
+mysql_root_password: "Pssw0RdD"
+replica_user: "replica"
+replica_password: "123456"
+exporter_user: "exporter"
+exporter_password: "password"
+
+xtrabackup_dir: "/opt/backup"
+
+proxysql_admin_user: "admin"
+proxysql_admin_password: "admin"
+proxysql_config: "/etc/proxysql.cnf"
+
+telegraf_config: "/etc/telegraf/telegraf.conf"
+prometheus_targets:
+  - "master:9273"
+  - "slave:9273"

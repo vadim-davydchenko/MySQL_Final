@@ -1,0 +1,23 @@
+all:
+  children:
+    db_servers:
+      hosts:
+        master:
+          ansible_host: <master_ip>
+          ansible_user: root
+        slave:
+          ansible_host: <slave_ip>
+          ansible_user: root
+    proxy:
+      hosts:
+        proxysql:
+          ansible_host: <proxysql_ip>
+          ansible_user: root
+    monitoring:
+      hosts:
+        prometheus:
+          ansible_host: <prometheus_ip>
+          ansible_user: root
+        telegraf:
+          ansible_host: <telegraf_ip>
+          ansible_user: root

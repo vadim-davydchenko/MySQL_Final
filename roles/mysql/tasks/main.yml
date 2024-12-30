@@ -1,0 +1,15 @@
+- name: Setup master MySQL
+  ansible.include_tasks: setup_master.yml
+  when: inventory_hostname == "master"
+
+- name: Setup slave MySQL
+  ansible.include_tasks: setup_slave.yml
+  when: inventory_hostname == "slave"
+
+- name: Setup ProxySQL
+  ansible.include_tasks: setup_proxysql.yml
+  when: inventory_hostname == "proxysql"
+
+- name: Setup Telegraf
+  ansible.include_tasks: setup_telegraf.yml
+  when: inventory_hostname == "telegraf"

@@ -1,0 +1,38 @@
+- name: Install xtrabackup
+  ansible.builtin.apt:
+    name: percona-xtrabackup-80
+    state: present
+    update_cache: true
+
+- name: Create backup database
+  ansible.builtin.command: >
+    xtrabackup --password={{ mysql_root_password }} --backup --target-dir={{ xtrabackup_dir }}
+  changed_when: false
+
+- name: Prepare backup
+  ansible.builtin.command: >
+    xtrabackup --prepare --target-dir={{ xtrabackup_dir }}
+  changed_when: false
+
+- name: Configure MySQL replication
+  ansible.builtin.template:
+    src: mysqld.cnf.j2
+    dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+    mode: '0644'
+
+- name: Create replication user
+  community.mysql.mysql_user:
+    name: "{{ replica_user }}"
+    password: "{{ replica_password }}"
+    priv: "*.*:REPLICATION SLAVE,REPLICATION CLIENT"
+    host: "%"
+    state: present
+
+- name: Create exporter user in MySQL
+  community.mysql.mysql_user:
+    name: "{{ exporter_user }}"
+    host: "127.0.0.1"
+    password: "{{ exporter_password }}"
+    priv: "*.*:PROCESS,REPLICATION CLIENT,SELECT"
+    state: present
+    append_privs: true

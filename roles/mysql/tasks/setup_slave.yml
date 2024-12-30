@@ -1,0 +1,59 @@
+- name: Download Percona Server
+  ansible.builtin.get_url:
+    url: https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb
+    dest: /tmp/percona-release_latest.$(lsb_release -sc)_all.deb
+    mode: '0644'
+
+- name: Install Percona Server
+  ansible.builtin.command:
+    cmd: dpkg -i /tmp/percona-release_latest.$(lsb_release -sc)_all.deb
+  changed_when: false
+
+- name: Setup Percona Release
+  ansible.builtin.command:
+    cmd: percona-release setup ps80
+  changed_when: false
+
+- name: Install Percona Server
+  ansible.builtin.apt:
+    name: percona-server-server
+    state: present
+    update_cache: true
+
+- name: Stop Percona
+  ansible.builtin.service:
+    name: mysql
+    state: stopped
+
+- name: Clean Percona data directory
+  ansible.builtin.file:
+    path: /var/lib/mysql
+    state: absent
+
+- name: Copy backup from master
+  ansible.builtin.fetch:
+    src: "{{ xtrabackup_dir }}"
+    dest: "/var/lib/mysql/"
+    flat: true
+    owner: mysql
+    group: mysql
+
+- name: Configure MySQL replication
+  ansible.builtin.template:
+    src: mysqld.cnf.j2
+    dest: /etc/mysql/mysql.conf.d/mysqld.cnf
+    mode: '0644'
+
+- name: Start Percona
+  ansible.builtin.service:
+    name: mysql
+    state: started
+
+- name: Set up slave replication
+  community.mysql.mysql_replication:
+    mode: changereplication
+    master_host: "{{ hostvars['master']['ansible_host'] }}"
+    master_user: "{{ replica_user }}"
+    master_password: "{{ replica_password }}"
+    master_log_file: "binlog.000013"
+    master_log_pos: 157
